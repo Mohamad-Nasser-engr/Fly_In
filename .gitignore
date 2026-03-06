@@ -1,3 +1,4 @@
 en.subject.pdf
 maps/
 *.txt
+__pycache__
