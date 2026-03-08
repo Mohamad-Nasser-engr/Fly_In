@@ -1,5 +1,7 @@
 from typing import List, Optional
 import re
+from PIL import ImageColor
+
 
 class Input_Parser():
     """Input parsing class."""
@@ -38,18 +40,89 @@ class Input_Parser():
     def handle_zone_types(self, content: List[str]):
         """Validates zone type argument"""
         hub = content[0]
+        is_start = False
+        is_end = False
         if (hub == "start_hub"):
             if self._start_hub:
                 raise Exception("Multiple start hub definition")
             else:
+                is_start = True
                 self._start_hub = content[0]
         elif (hub == "end_hub"):
             if self._end_hub:
                 raise Exception("Multiple end hub definition")
             else:
+                is_end = True
                 self._end_hub = content[0]
         elif (hub != "hub"):
             raise Exception("Invalid argument chosen")
+        return [is_start, is_end]
+
+    def handle_zone_names(self, hub_data) -> str:
+        zone_name = hub_data[0]
+        if "-" in zone_name or " " in zone_name:
+            raise Exception("Zone names cannot contain dashes (-) or spaces")
+        if zone_name in self._zone_names:
+            raise Exception(f"Duplicate zone name: {zone_name}")
+        self._zone_names.append(zone_name)
+        self._zones_data[zone_name] = {}
+        return zone_name
+
+    def handle_zone_coord(self, hub_data, zone_name):
+        if not hub_data[1].strip().isdigit():
+            raise Exception("Invalid x coordinate")
+        else:
+            x_cord = int(hub_data[1].strip())
+        if not hub_data[2].strip().isdigit():
+            raise Exception("Invalid y coordinate")
+        else:
+            y_cord = int(hub_data[2].strip())
+        if (x_cord, y_cord) in self._coordinate_list:
+            raise Exception("Duplicate coordinates")
+        else:
+            self._coordinate_list.append((x_cord, y_cord))
+            self._zones_data[zone_name]["coordinates"] = (x_cord, y_cord)
+
+    def handle_zone_metadata(self, hub_data, zone_name):
+        meta = hub_data[3]
+        if (meta.startswith("[") and meta.endswith("]")
+                and meta.count("[") == 1 and meta.count("]") == 1):
+            meta_list = meta.strip("[]").split()
+        else:
+            raise Exception("Invalid format for metadata")
+        data_list = []
+        for data in meta_list:
+            d_l = data.strip().split("=")
+            if len(d_l) != 2:
+                raise Exception("Invalid Metadata")
+            meta_name = d_l[0]
+            if meta_name in data_list:
+                raise Exception("Duplicate metadata")
+            else:
+                data_list.append(meta_name)
+            if meta_name == "color":
+                try:
+                    ImageColor.getcolor(d_l[1], "RGB")
+                except Exception:
+                    raise Exception("Invalid color chosen")
+                self._zones_data[zone_name]["color"] = d_l[1]
+            elif meta_name == "zone":
+                if d_l[1].strip() in ("normal", "blocked",
+                                      "restricted", "priority"):
+                    if d_l[1].strip() == "blocked":
+                        is_start = self._zones_data[zone_name]["is_start"]
+                        is_end = self._zones_data[zone_name]["is_end"]
+                        if is_start or is_end:
+                            raise Exception("Start/end zones can't be blocked")
+                    self._zones_data[zone_name]["zone"] = d_l[1]
+                else:
+                    raise Exception("Invalid zone specified in metadata")
+            elif meta_name == "max_drones":
+                if not d_l[1].strip().isdigit():
+                    raise Exception("Invalid metadata value")
+                self._zones_data[zone_name]["max_drones"] = int(d_l[1])
+            else:
+                raise Exception("Invalid metadata")
 
     def zone_handling(self, line: str) -> bool:
         """Parses hub data"""
@@ -57,76 +130,28 @@ class Input_Parser():
             content = line.split(":")
             if len(content) != 2:
                 raise Exception("Invalid Syntax")
-            self.handle_zone_types(content)
+            stats = self.handle_zone_types(content)
             hub_data = re.split(r'\s+(?![^\[]*\])', content[1].strip())
-            print(hub_data)
             if len(hub_data) != 3 and len(hub_data) != 4:
-                raise Exception("Invalid format: <hub_type>: zone_name x y [optional metadata]")
-            zone_name = hub_data[0]
-            if "-" in zone_name or " " in zone_name:
-                raise Exception("Zone names cannot contain dashes (-) or spaces")
-            if zone_name in self._zone_names:
-                raise Exception(f"Duplicate zone name: {zone_name}")
-            self._zone_names.append(zone_name)
-            self._zones_data[zone_name] = {}
-            # coord
-            if not hub_data[1].strip().isdigit():
-                raise Exception("Invalid x corrdinate")
-            else:
-                x_cord = int(hub_data[1].strip())
-            if not hub_data[2].strip().isdigit():
-                raise Exception("Invalid y corrdinate")
-            else:
-                y_cord = int(hub_data[2].strip())
-            if (x_cord, y_cord) in self._coordinate_list:
-                raise Exception("Duplicate coordinates")
-            else:
-                self._coordinate_list.append((x_cord, y_cord))
-                self._zones_data[zone_name]["coordinates"] = (x_cord, y_cord)
+                raise Exception("Zone format: <type>: name x y [metadata]")
+            zone_name = self.handle_zone_names(hub_data)
+            self._zones_data[zone_name]["is_start"] = stats[0]
+            self._zones_data[zone_name]["is_end"] = stats[1]
+            self.handle_zone_coord(hub_data, zone_name)
             # Optional metadata
             self._zones_data[zone_name]["color"] = None
             self._zones_data[zone_name]["zone"] = "normal"
             self._zones_data[zone_name]["max_drones"] = 1
             if len(hub_data) == 4:
-                meta = hub_data[3]
-                if (meta.startswith("[") and meta.endswith("]")
-                        and meta.count("[") == 1 and meta.count("]") == 1):
-                    meta_list = meta.strip("[]").split()
-                else:
-                    raise Exception("Invalid format for metadata")
-                if len(meta_list) != len(set(meta_list)):
-                    #NOT ENOUGH FOR DUPLICATE
-                    raise Exception("Duplicate Metadata")
-                for data in meta_list:
-                    d_l = data.strip().split("=")
-                    if len(d_l) != 2:
-                        raise Exception("Invalid Metadata")
-                    meta_name = d_l[0]
-                    if meta_name == "color":
-                        # check if valid color
-                        ### !!!!!!!!!!!!!!!!!!!!
-                        self._zones_data[zone_name]["color"] = d_l[1]
-                    elif meta_name == "zone":
-                        if d_l[1].strip() in ("normal", "blocked", "restricted", "priority"):
-                            self._zones_data[zone_name]["zone"] = d_l[1]
-                        else:
-                            #zone= normal is giving this error
-                            raise Exception("Invalid zone specified in metadata")
-                    elif meta_name == "max_drones":
-                        if not d_l[1].strip().isdigit():
-                            raise Exception ("Invalid metadata value")
-                        self._zones_data[zone_name]["max_drones"] = int(d_l[1])
-                    else:
-                        raise Exception("Invalid metadata")
+                self.handle_zone_metadata(hub_data, zone_name)
             return True
         except Exception as e:
             print("Invalid line: ", line)
             print(e)
             return False
 
-
     def connection_handling(self, line: str) -> bool:
-        pass
+        return True
 
     def parse_input(self, input_file: str) -> bool:
         """Parses input file."""
@@ -148,7 +173,10 @@ class Input_Parser():
                     self._is_valid = self.connection_handling(line)
                 else:
                     self._is_valid = self.zone_handling(line)
-            ## AT END OF LOOP CHECK THAT START_HUB AND END_HUB WERE SET
+            if (not self._start_hub or not self._end_hub) and self._is_valid:
+                self._is_valid = False
+                print("Start or End hub not specified in input file")
+            print(self._zones_data)
 
     def is_valid(self) -> bool:
         return self._is_valid
