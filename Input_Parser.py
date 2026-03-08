@@ -14,8 +14,9 @@ class Input_Parser():
         self._zone_names: List[str] = []
         self._coordinate_list: List[tuple[int, int]] = []
         self._zones_data: dict = {}
+        self._connections = []
 
-    def get_drone_numbers(self, line: str) -> bool:
+    def nb_drone_parsing(self, line: str) -> bool:
         """Get drone numbers"""
         try:
             content = line.split(":")
@@ -30,7 +31,6 @@ class Input_Parser():
                 elif not content[1].strip().startswith("+"):
                     raise Exception()
             self._nb_drones = int(content[1])
-            print(self._nb_drones)
             return True
         except Exception:
             print("Invalid line: ", line)
@@ -39,7 +39,7 @@ class Input_Parser():
 
     def handle_zone_types(self, content: List[str]):
         """Validates zone type argument"""
-        hub = content[0]
+        hub = content[0].strip()
         is_start = False
         is_end = False
         if (hub == "start_hub"):
@@ -59,6 +59,7 @@ class Input_Parser():
         return [is_start, is_end]
 
     def handle_zone_names(self, hub_data) -> str:
+        """Validates zone names."""
         zone_name = hub_data[0]
         if "-" in zone_name or " " in zone_name:
             raise Exception("Zone names cannot contain dashes (-) or spaces")
@@ -69,6 +70,7 @@ class Input_Parser():
         return zone_name
 
     def handle_zone_coord(self, hub_data, zone_name):
+        """Validates zone coordinates"""
         if not hub_data[1].strip().isdigit():
             raise Exception("Invalid x coordinate")
         else:
@@ -84,6 +86,7 @@ class Input_Parser():
             self._zones_data[zone_name]["coordinates"] = (x_cord, y_cord)
 
     def handle_zone_metadata(self, hub_data, zone_name):
+        """Validates zone metadata"""
         meta = hub_data[3]
         if (meta.startswith("[") and meta.endswith("]")
                 and meta.count("[") == 1 and meta.count("]") == 1):
@@ -138,10 +141,10 @@ class Input_Parser():
             self._zones_data[zone_name]["is_start"] = stats[0]
             self._zones_data[zone_name]["is_end"] = stats[1]
             self.handle_zone_coord(hub_data, zone_name)
-            # Optional metadata
             self._zones_data[zone_name]["color"] = None
             self._zones_data[zone_name]["zone"] = "normal"
             self._zones_data[zone_name]["max_drones"] = 1
+            self._zones_data[zone_name]["connections"] = {}
             if len(hub_data) == 4:
                 self.handle_zone_metadata(hub_data, zone_name)
             return True
@@ -150,7 +153,56 @@ class Input_Parser():
             print(e)
             return False
 
+    def handle_connection_metadata(self, con_data, data):
+        """Validates connection metadata."""
+        meta = con_data[1]
+        if (meta.startswith("[") and meta.endswith("]")
+                and meta.count("[") == 1 and meta.count("]") == 1):
+            meta_list = meta.strip("[]").split()
+        else:
+            raise Exception("Invalid format for metadata")
+        if len(meta_list) > 1:
+            raise Exception("Invalid connection metadata")
+        d_l = meta_list[0].strip().split("=")
+        if len(d_l) != 2:
+            raise Exception("Invalid connection metadata")
+        if d_l[0] != "max_link_capacity":
+            raise Exception("Invalid connection metadata")
+        if not d_l[1].strip().isdigit():
+            raise Exception("Invalid metadata value")
+        self._zones_data[data[0]]["connections"][data[1]] = int(d_l[1])
+        self._zones_data[data[1]]["connections"][data[0]] = int(d_l[1])
+
     def connection_handling(self, line: str) -> bool:
+        """Parses connection lines."""
+        try:
+            content = line.split(":")
+            if len(content) != 2:
+                raise Exception("Invalid Syntax")
+            if content[0].strip() != "connection":
+                raise Exception("Invalid argument chosen")
+            con_data = re.split(r'\s+(?![^\[]*\])', content[1].strip())
+            if len(con_data) != 1 and len(con_data) != 2:
+                raise Exception("Format: zone1-zone2 [metadata]")
+            data = sorted(con_data[0].strip().split("-"))
+            if len(data) != 2:
+                raise Exception("Invalid Connection: zone1-zone2")
+            if (data[0] not in self._zones_data
+                    or data[1] not in self._zones_data):
+                raise Exception("Zones must be specified before connection")
+            if data[0] == data[1]:
+                raise Exception("Cannot make connection on the same zone")
+            if data in self._connections:
+                raise Exception("Duplicate connection")
+            self._zones_data[data[0]]["connections"][data[1]] = 1
+            self._zones_data[data[1]]["connections"][data[0]] = 1
+            if len(con_data) == 2:
+                self.handle_connection_metadata(con_data, data)
+            self._connections.append(data)
+        except Exception as e:
+            print("Invalid line: ", line)
+            print(e)
+            return False
         return True
 
     def parse_input(self, input_file: str) -> bool:
@@ -161,14 +213,11 @@ class Input_Parser():
                 if not self._is_valid:
                     break
                 line = line.strip()
-                # Skips empty and commented lines
                 if line == "" or line.startswith("#"):
                     continue
-                # get drone numbers
                 if is_first_line:
                     is_first_line = False
-                    self._is_valid = self.get_drone_numbers(line)
-                # Other cases
+                    self._is_valid = self.nb_drone_parsing(line)
                 elif line.startswith("connection"):
                     self._is_valid = self.connection_handling(line)
                 else:
@@ -176,7 +225,15 @@ class Input_Parser():
             if (not self._start_hub or not self._end_hub) and self._is_valid:
                 self._is_valid = False
                 print("Start or End hub not specified in input file")
-            print(self._zones_data)
+
+    def get_drone_numbers(self):
+        """Get drone numbers after parsing"""
+        return self._nb_drones
+
+    def get_input_data(self):
+        """Return parsed data"""
+        return self._zones_data
 
     def is_valid(self) -> bool:
+        """Returns file validity variable."""
         return self._is_valid
