@@ -1,8 +1,11 @@
 from typing import List, Optional
 import re
 from PIL import ImageColor
+from typing import Any
 
 
+# See if we need to check that the end/start hub have valid number of max_drones
+# Color might only need to accept any string and defaults to a color if the picked color is invalid
 class Input_Parser():
     """Input parsing class."""
     def __init__(self) -> None:
@@ -13,7 +16,7 @@ class Input_Parser():
         self._end_hub: Optional[str] = None
         self._zone_names: List[str] = []
         self._coordinate_list: List[tuple[int, int]] = []
-        self._zones_data: dict = {}
+        self._zones_data: dict[str, Any] = {}
         self._connections: List[List[str]] = []
 
     def nb_drone_parsing(self, line: str) -> bool:
@@ -71,11 +74,11 @@ class Input_Parser():
 
     def handle_zone_coord(self, hub_data: List[str], zone_name: str) -> None:
         """Validates zone coordinates"""
-        if not hub_data[1].strip().isdigit():
+        if not hub_data[1].strip().lstrip('-').isdigit():
             raise Exception("Invalid x coordinate")
         else:
             x_cord = int(hub_data[1].strip())
-        if not hub_data[2].strip().isdigit():
+        if not hub_data[2].strip().lstrip('-').isdigit():
             raise Exception("Invalid y coordinate")
         else:
             y_cord = int(hub_data[2].strip())
@@ -238,6 +241,6 @@ class Input_Parser():
         """Get drone numbers after parsing"""
         return self._nb_drones
 
-    def get_input_data(self) -> dict:
+    def get_input_data(self) -> dict[str, Any]:
         """Return parsed data"""
         return self._zones_data
