@@ -4,8 +4,6 @@ from PIL import ImageColor
 from typing import Any
 
 
-# See if we need to check that the end/start hub have valid number of max_drones
-# Color might only need to accept any string and defaults to a color if the picked color is invalid
 class Input_Parser():
     """Input parsing class."""
     def __init__(self) -> None:
