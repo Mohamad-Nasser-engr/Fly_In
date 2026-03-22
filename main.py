@@ -1,7 +1,7 @@
 from Input_Parser import Input_Parser
 import arcade
 from Display import Window
-from Dijkstra import Dijkstra
+from ReverseDijkstra import ReverseDijkstra
 
 
 def main() -> None:
@@ -13,13 +13,15 @@ def main() -> None:
         if not input_data:
             return
         print(input_data)
-        algo = Dijkstra(input_data)
-        algo.process()
-        print("PROCESSED PATH: ")
-        print("DISTANCES: ")
-        print(algo.distances)
-        print("PREVIOUS: ")
-        print(algo.previous)
+        algo = ReverseDijkstra(input_data)
+        print("OUTPUT:")
+        dists = algo.process()
+        print(dists)
+        # print("PROCESSED PATH: ")
+        # print("DISTANCES: ")
+        # print(algo.dist_to_end)
+        # print("PREVIOUS: ")
+        # print(algo.previous)
         Window(1280, 720, "Drone System", input_data)
         arcade.run()
 
