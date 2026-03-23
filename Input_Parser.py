@@ -147,8 +147,16 @@ class Input_Parser():
             self._zones_data[zone_name]["zone"] = "normal"
             self._zones_data[zone_name]["max_drones"] = 1
             self._zones_data[zone_name]["connections"] = {}
+            ###
+            if stats[0]:
+                self._zones_data[zone_name]["drone_in_zone"] = self._nb_drones
+            else:
+                self._zones_data[zone_name]["drone_in_zone"] = 0
+            ###
             if len(hub_data) == 4:
                 self.handle_zone_metadata(hub_data, zone_name)
+            if stats[1]:
+                self._zones_data[zone_name]["max_drones"] = self._nb_drones
             return True
         except Exception as e:
             print("Invalid line: ", line)
