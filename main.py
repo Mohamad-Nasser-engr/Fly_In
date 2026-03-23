@@ -13,7 +13,7 @@ def main() -> None:
         input_data = inp_parser.get_input_data()
         if not input_data:
             return
-        # print(input_data)
+        print(input_data)
         algo = ReverseDijkstra(input_data)
         # print("OUTPUT:")
         dists = algo.process()

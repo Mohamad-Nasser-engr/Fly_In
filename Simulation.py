@@ -7,6 +7,7 @@ class DroneState(TypedDict):
     dist_to_end: float | int
     in_transit: bool
     trans_location: Optional[str]
+    old_location: Optional[str]
 
 
 class Simulation():
@@ -27,7 +28,8 @@ class Simulation():
                                              "dist_to_end":
                                              dist_to_end[self.start],
                                              "in_transit": False,
-                                             "trans_location": None}
+                                             "trans_location": None,
+                                             "old_location": None}
                                             for i
                                             in range(1, self.drone_num + 1)]
         # print(self.locations)
@@ -43,12 +45,23 @@ class Simulation():
             # add a in_connection flag?
             # Current location Data
             drone_id = drone["id"]
+            # ## CHECK IF DRONE IN TRANSIT???(HERE ?)
+            if drone["in_transit"]:
+                next_location = drone["trans_location"]
+                old_location = drone["old_location"]
+                drone["in_transit"] = False
+                drone["location"] = next_location
+                drone["trans_location"] = None
+                drone["dist_to_end"] = self.dist_to_end[next_location]
+                self.input_data[next_location]["drone_in_zone"] += 1
+                self.input_data[old_location]["connections"][next_location]["drone_in_link"] -= 1
+                drone["old_location"] = None
+                ans += f"D{drone_id}-{next_location} "
+                continue
             drone_location: str = drone["location"]
             drone_dist = drone["dist_to_end"]
             if drone_location == self.end:
                 continue
-
-            # ## CHECK IF DRONE IN TRANSIT???(HERE ?)
 
             # drone_neighbors: list[dict[str, Any]]
             drone_neighbors = [{"location": key,
@@ -74,15 +87,23 @@ class Simulation():
                     continue
                 elif nei_type == "restricted":
                     # ## Check if link is full
-                    # ## edit is transit and trans location
-
+                    link_load = self.input_data[drone_location]["connections"][nei_location]["drone_in_link"]
+                    link_capacity = self.input_data[drone_location]["connections"][nei_location]["max_link"]
+                    if link_capacity == link_load:
+                        continue
+                    # this statement should be edited to see if after 2 turns its available?
+                    if nei_load == nei_capacity:
+                        continue
+                    drone["old_location"] = drone_location
+                    drone["trans_location"] = nei_location
+                    drone["in_transit"] = True
+                    self.input_data[drone_location]["drone_in_zone"] -= 1
+                    self.input_data[drone_location]["connections"][nei_location]["drone_in_link"] += 1
+                    ans += f"D{drone_id}-{drone_location}-{nei_location} "
                     break
                 elif nei_load == nei_capacity:
                     continue
                 else:
-                    ####
-                    # STILL NEED TO HANDLE CONNECTIONS AND RESTRICTED ZONES
-                    ####
                     # change location / dist of drone and current drone
                     drone["location"] = nei_location
                     drone["dist_to_end"] = nei_dist
@@ -102,6 +123,11 @@ class Simulation():
 
     def simulate_run(self) -> None:
         """Simulates the whole run."""
+        i = 0
         while (not self.is_completed()):
             print(self.simulate_turn())
-            self.locations.sort(key=lambda drone: drone['dist_to_end'])
+            i += 1
+            ### ADD CONDITION TO ALSO SORT BASED ON ISTRANSIT IF THE DIST ARE THE SAME
+            self.locations.sort(key=lambda drone: (drone['dist_to_end'],
+                                                   0 if drone['in_transit'] else 1))
+        print(i)
