@@ -3,8 +3,10 @@ from typing import Any
 
 
 class Window(arcade.Window):
+    """Display window."""
     def __init__(self, width: int, height: int,
                  title: str, map: dict[str, Any]) -> None:
+        """Initializes display."""
         super().__init__(width, height, title, resizable=True)
         self.set_location(400, 200)
         self.x = 50
@@ -12,6 +14,7 @@ class Window(arcade.Window):
         arcade.set_background_color(arcade.color.BLACK)
 
     def on_draw(self) -> None:
+        """Specifies what to draw."""
         SCALE = 150
         OFFSET_X = 200
         OFFSET_Y = 300

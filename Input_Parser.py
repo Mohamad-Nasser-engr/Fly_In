@@ -155,7 +155,7 @@ class Input_Parser():
             ###
             if len(hub_data) == 4:
                 self.handle_zone_metadata(hub_data, zone_name)
-            if stats[1]:
+            if stats[1] or stats[0]:
                 self._zones_data[zone_name]["max_drones"] = self._nb_drones
             return True
         except Exception as e:
@@ -181,8 +181,11 @@ class Input_Parser():
             raise Exception("Invalid connection metadata")
         if not d_l[1].strip().isdigit():
             raise Exception("Invalid metadata value")
-        self._zones_data[data[0]]["connections"][data[1]] = int(d_l[1])
-        self._zones_data[data[1]]["connections"][data[0]] = int(d_l[1])
+        temp = {"max_link": int(d_l[1]), "drone_in_link": 0}
+        # they share the same temp so when i do drone_link +1
+        # for one it will do the same for the other
+        self._zones_data[data[0]]["connections"][data[1]] = temp
+        self._zones_data[data[1]]["connections"][data[0]] = temp
 
     def connection_handling(self, line: str) -> bool:
         """Parses connection lines."""
@@ -205,8 +208,9 @@ class Input_Parser():
                 raise Exception("Cannot make connection on the same zone")
             if data in self._connections:
                 raise Exception("Duplicate connection")
-            self._zones_data[data[0]]["connections"][data[1]] = 1
-            self._zones_data[data[1]]["connections"][data[0]] = 1
+            temp = {"max_link": 1, "drone_in_link": 0}
+            self._zones_data[data[0]]["connections"][data[1]] = temp
+            self._zones_data[data[1]]["connections"][data[0]] = temp
             if len(con_data) == 2:
                 self.handle_connection_metadata(con_data, data)
             self._connections.append(data)

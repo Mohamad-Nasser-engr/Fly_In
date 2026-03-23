@@ -1,16 +1,19 @@
-from typing import Any
-from typing import TypedDict
+from typing import Any, Optional, TypedDict
 
 
 class DroneState(TypedDict):
     id: int
     location: str
     dist_to_end: float | int
+    in_transit: bool
+    trans_location: Optional[str]
 
 
 class Simulation():
+    """Simulation class."""
     def __init__(self, drone_num: int, input_data: dict[str, Any],
                  dist_to_end: dict[str, float | int]) -> None:
+        """Initializes simulator."""
         self.drone_num = drone_num
         self.input_data = input_data
         self.dist_to_end = dist_to_end
@@ -22,12 +25,15 @@ class Simulation():
         self.locations: list[DroneState] = [{"id": i,
                                              "location": self.start,
                                              "dist_to_end":
-                                             dist_to_end[self.start]}
+                                             dist_to_end[self.start],
+                                             "in_transit": False,
+                                             "trans_location": None}
                                             for i
                                             in range(1, self.drone_num + 1)]
         # print(self.locations)
 
     def simulate_turn(self) -> str:
+        """Simulate one turn."""
         # One turn
         ans = ""
         for drone in self.locations:
@@ -41,6 +47,9 @@ class Simulation():
             drone_dist = drone["dist_to_end"]
             if drone_location == self.end:
                 continue
+
+            # ## CHECK IF DRONE IN TRANSIT???(HERE ?)
+
             # drone_neighbors: list[dict[str, Any]]
             drone_neighbors = [{"location": key,
                                 "dist_to_end": self.dist_to_end[key],
@@ -61,8 +70,14 @@ class Simulation():
                 nei_load = self.input_data[nei_location]["drone_in_zone"]
                 # Invalid neighbor conditions
                 # (dist > current dist, blocked nei, max capacity)
-                if (nei_type == "blocked" or nei_dist >= drone_dist
-                        or nei_load == nei_capacity):
+                if (nei_type == "blocked" or nei_dist >= drone_dist):
+                    continue
+                elif nei_type == "restricted":
+                    # ## Check if link is full
+                    # ## edit is transit and trans location
+
+                    break
+                elif nei_load == nei_capacity:
                     continue
                 else:
                     ####
@@ -79,12 +94,14 @@ class Simulation():
         return ans
 
     def is_completed(self) -> bool:
+        """Check if all drones reached the end."""
         for drone in self.locations:
             if drone["location"] != self.end:
                 return False
         return True
 
     def simulate_run(self) -> None:
+        """Simulates the whole run."""
         while (not self.is_completed()):
             print(self.simulate_turn())
             self.locations.sort(key=lambda drone: drone['dist_to_end'])

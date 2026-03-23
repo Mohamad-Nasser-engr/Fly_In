@@ -12,7 +12,9 @@ class ZoneType(Enum):
 
 
 class ReverseDijkstra():
+    """Class that calculates each zones distance to the end."""
     def __init__(self, input_data: dict[str, Any]):
+        """Initializes the class."""
         self.input_data = input_data
         self.start = [key for key in input_data
                       if input_data[key]["is_start"]][0]
@@ -30,6 +32,7 @@ class ReverseDijkstra():
         heapq.heappush(self.pq, (0, self.end))
 
     def process(self) -> dict[str, float | int]:
+        """Processes zone distances from the end."""
         while (len(self.pq) != 0):
             old_cost, cur_node = heapq.heappop(self.pq)
             if cur_node in self.visited:
