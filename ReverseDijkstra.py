@@ -37,8 +37,6 @@ class ReverseDijkstra():
             old_cost, cur_node = heapq.heappop(self.pq)
             if cur_node in self.visited:
                 continue
-            # if (self.input_data[cur_node]["is_end"]):
-            #     break
             self.visited.add(cur_node)
             zone_type = ZoneType[self.input_data[cur_node]["zone"].upper()]
             for neighbor in self.input_data[cur_node]["connections"]:
@@ -52,10 +50,3 @@ class ReverseDijkstra():
                     heapq.heappush(self.pq,
                                    (self.dist_to_end[neighbor], neighbor))
         return self.dist_to_end
-        # node = [key for key in self.previous.keys()
-        #        if self.input_data[key]["is_start"]][0]
-        # path = []
-        # while node is not None:
-        #     path.append(node)
-        #     node = self.previous[node]
-        # print("SHORTEST PATH: ", path)

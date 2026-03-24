@@ -22,7 +22,6 @@ class Simulation():
                       if input_data[key]["is_start"]][0]
         self.end = [key for key in input_data
                     if input_data[key]["is_end"]][0]
-        # Ad is_in_transit key
         self.locations: list[DroneState] = [{"id": i,
                                              "location": self.start,
                                              "dist_to_end":
@@ -36,38 +35,33 @@ class Simulation():
 
     def simulate_turn(self) -> str:
         """Simulate one turn."""
-        # One turn
         ans = ""
         for drone in self.locations:
-            # check neighbor with least dist to end to go to
-            # Make sure it has space
-            # make sure if it is priority or restricted to handle
-            # add a in_connection flag?
-            # Current location Data
             drone_id = drone["id"]
-            # ## CHECK IF DRONE IN TRANSIT???(HERE ?)
             if drone["in_transit"]:
-                next_location = drone["trans_location"]
-                old_location = drone["old_location"]
+                next_loc = drone["trans_location"]
+                old_loc = drone["old_location"]
+                if old_loc is None or next_loc is None:
+                    return "INVALID TRANSIT"
                 drone["in_transit"] = False
-                drone["location"] = next_location
+                drone["location"] = next_loc
                 drone["trans_location"] = None
-                drone["dist_to_end"] = self.dist_to_end[next_location]
-                self.input_data[next_location]["drone_in_zone"] += 1
-                self.input_data[old_location]["connections"][next_location]["drone_in_link"] -= 1
+                drone["dist_to_end"] = self.dist_to_end[next_loc]
+                self.input_data[next_loc]["drone_in_zone"] += 1
+                link2 = self.input_data[old_loc]["connections"][next_loc]
+                link2["drone_in_link"] -= 1
                 drone["old_location"] = None
-                ans += f"D{drone_id}-{next_location} "
+                ans += f"D{drone_id}-{next_loc} "
                 continue
-            drone_location: str = drone["location"]
+            drone_loc: str = drone["location"]
             drone_dist = drone["dist_to_end"]
-            if drone_location == self.end:
+            if drone_loc == self.end:
                 continue
 
-            # drone_neighbors: list[dict[str, Any]]
             drone_neighbors = [{"location": key,
                                 "dist_to_end": self.dist_to_end[key],
                                 "zone_type": self.input_data[key]["zone"]}
-                               for key in self.input_data[drone_location]
+                               for key in self.input_data[drone_loc]
                                ["connections"].keys()]
             drone_neighbors.sort(key=lambda n:
                                  (0 if n['zone_type'] == 'priority'
@@ -75,42 +69,39 @@ class Simulation():
             # print("SORTED NEIGHBORS")
             # print(drone_neighbors)
             for neighbor in drone_neighbors:
-                # Neighbor data
-                nei_location = neighbor["location"]
+                nei_loc = neighbor["location"]
                 nei_dist = neighbor["dist_to_end"]
                 nei_type = neighbor["zone_type"]
-                nei_capacity = self.input_data[nei_location]["max_drones"]
-                nei_load = self.input_data[nei_location]["drone_in_zone"]
-                # Invalid neighbor conditions
-                # (dist > current dist, blocked nei, max capacity)
+                nei_capacity = self.input_data[nei_loc]["max_drones"]
+                nei_load = self.input_data[nei_loc]["drone_in_zone"]
                 if (nei_type == "blocked" or nei_dist >= drone_dist):
                     continue
                 elif nei_type == "restricted":
-                    # ## Check if link is full
-                    link_load = self.input_data[drone_location]["connections"][nei_location]["drone_in_link"]
-                    link_capacity = self.input_data[drone_location]["connections"][nei_location]["max_link"]
+                    link = self.input_data[drone_loc]["connections"][nei_loc]
+                    link_load = link["drone_in_link"]
+                    link_capacity = link["max_link"]
                     if link_capacity == link_load:
                         continue
-                    # this statement should be edited to see if after 2 turns its available?
+                    # this statement should be edited
+                    # to see if after 2 turns its available?
                     if nei_load == nei_capacity:
                         continue
-                    drone["old_location"] = drone_location
-                    drone["trans_location"] = nei_location
+                    drone["old_location"] = drone_loc
+                    drone["trans_location"] = nei_loc
                     drone["in_transit"] = True
-                    self.input_data[drone_location]["drone_in_zone"] -= 1
-                    self.input_data[drone_location]["connections"][nei_location]["drone_in_link"] += 1
-                    ans += f"D{drone_id}-{drone_location}-{nei_location} "
+                    self.input_data[drone_loc]["drone_in_zone"] -= 1
+                    link3 = self.input_data[drone_loc]["connections"][nei_loc]
+                    link3["drone_in_link"] += 1
+                    ans += f"D{drone_id}-{drone_loc}-{nei_loc} "
                     break
                 elif nei_load == nei_capacity:
                     continue
                 else:
-                    # change location / dist of drone and current drone
-                    drone["location"] = nei_location
+                    drone["location"] = nei_loc
                     drone["dist_to_end"] = nei_dist
-                    # change load of neighbor
-                    self.input_data[nei_location]["drone_in_zone"] += 1
-                    self.input_data[drone_location]["drone_in_zone"] -= 1
-                    ans += f"D{drone_id}-{nei_location} "
+                    self.input_data[nei_loc]["drone_in_zone"] += 1
+                    self.input_data[drone_loc]["drone_in_zone"] -= 1
+                    ans += f"D{drone_id}-{nei_loc} "
                     break
         return ans
 
@@ -127,7 +118,7 @@ class Simulation():
         while (not self.is_completed()):
             print(self.simulate_turn())
             i += 1
-            ### ADD CONDITION TO ALSO SORT BASED ON ISTRANSIT IF THE DIST ARE THE SAME
-            self.locations.sort(key=lambda drone: (drone['dist_to_end'],
-                                                   0 if drone['in_transit'] else 1))
+            self.locations.sort(key=lambda drone:
+                                (drone['dist_to_end'],
+                                 0 if drone['in_transit'] else 1))
         print(i)
