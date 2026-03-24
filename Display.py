@@ -11,8 +11,6 @@ class Window(arcade.Window):
                  turn_data: dict[int, list[DroneState]]) -> None:
         """Initializes display."""
         super().__init__(width, height, title, resizable=True)
-        self.set_location(400, 200)
-        self.x = 50
         self.map = map
         self.turn_data = turn_data
 
@@ -27,8 +25,7 @@ class Window(arcade.Window):
     def on_update(self, delta_time: float) -> None:
         """Advance animation timer and turns, stop at last turn."""
         if self.current_turn >= self.max_turn:
-            # Stop updating after last turn
-            self.timer = self.turn_duration  # clamp to 1
+            self.timer = self.turn_duration  # clamp
             return
 
         self.timer += delta_time
@@ -38,15 +35,35 @@ class Window(arcade.Window):
             if self.current_turn > self.max_turn:
                 self.current_turn = self.max_turn
 
+    def compute_offsets(self, scale_x: float = 85,
+                        scale_y: float = 100) -> tuple[float, float]:
+        """Compute offsets to center the graph on the screen."""
+        # Find min/max coordinates in the graph
+        xs = [coord[0] for node in self.map.values()
+              for coord in [node["coordinates"]]]
+        ys = [coord[1] for node in self.map.values()
+              for coord in [node["coordinates"]]]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+
+        graph_width = (max_x - min_x) * scale_x
+        graph_height = (max_y - min_y) * scale_y
+
+        offset_x = (self.width - graph_width) / 2 - min_x * scale_x
+        offset_y = (self.height - graph_height) / 2 - min_y * scale_y
+
+        return offset_x, offset_y
+
     def on_draw(self) -> None:
         """Draws the graph, nodes, and moving drones."""
         SCALE_X = 85
         SCALE_Y = 100
-        OFFSET_X = 50
-        OFFSET_Y = 360
 
         self.clear()
         t = self.timer / self.turn_duration  # interpolation factor
+
+        # Dynamic offsets for centering
+        OFFSET_X, OFFSET_Y = self.compute_offsets(SCALE_X, SCALE_Y)
 
         # Get current and previous turns
         current_turn_data = self.turn_data[self.current_turn]
@@ -79,7 +96,6 @@ class Window(arcade.Window):
             count = 0
             for drone in current_turn_data:
                 if drone["in_transit"]:
-                    # Simple version: count in trans_location
                     if drone["trans_location"] == name:
                         count += 1
                 else:
@@ -96,7 +112,6 @@ class Window(arcade.Window):
             drone_now = current_turn_data[i]
             drone_prev = previous_turn_data[i]
 
-            # Determine start and end positions for interpolation
             if drone_now["in_transit"]:
                 start_loc = drone_now["old_location"] or drone_prev["location"]
                 end_loc = drone_now["trans_location"] or drone_now["location"]
@@ -117,4 +132,5 @@ class Window(arcade.Window):
             y = y1 + (y2 - y1) * t
 
             # Draw drone
-            arcade.draw_circle_filled(x, y, 8, arcade.color.YELLOW)
+            if self.current_turn != self.max_turn:
+                arcade.draw_circle_filled(x, y, 8, arcade.color.YELLOW)

@@ -1,6 +1,5 @@
 from typing import List, Optional
 import re
-from PIL import ImageColor
 from typing import Any
 
 
@@ -106,9 +105,7 @@ class Input_Parser():
             else:
                 data_list.append(meta_name)
             if meta_name == "color":
-                try:
-                    ImageColor.getcolor(d_l[1], "RGB")
-                except Exception:
+                if len(d_l[1].split(" ")) != 1:
                     raise Exception("Invalid color chosen")
                 self._zones_data[zone_name]["color"] = d_l[1]
             elif meta_name == "zone":
@@ -151,10 +148,13 @@ class Input_Parser():
                 self._zones_data[zone_name]["drone_in_zone"] = self._nb_drones
             else:
                 self._zones_data[zone_name]["drone_in_zone"] = 0
+            if stats[1] or stats[0]:
+                self._zones_data[zone_name]["max_drones"] = self._nb_drones
             if len(hub_data) == 4:
                 self.handle_zone_metadata(hub_data, zone_name)
             if stats[1] or stats[0]:
-                self._zones_data[zone_name]["max_drones"] = self._nb_drones
+                if self._zones_data[zone_name]["max_drones"] < self._nb_drones:
+                    raise Exception("Start or end cannot contain all drones")
             return True
         except Exception as e:
             print("Invalid line: ", line)

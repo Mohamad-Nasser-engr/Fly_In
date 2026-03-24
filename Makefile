@@ -1,11 +1,12 @@
 PY = python3
 MAIN = main
+FILE_PATH = maps/challenger/01_the_impossible_dream.txt
 
-# install:
-# 	pip install -r requirements.txt
+install:
+	pip install -r requirements.txt
 
 run:
-	$(PY) -m $(MAIN)
+	$(PY) -m $(MAIN) $(FILE_PATH)
 
 debug:
 	$(PY) -m pdb $(MAIN)
