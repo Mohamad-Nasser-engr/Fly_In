@@ -1,4 +1,5 @@
 from typing import Any, Optional, TypedDict
+import copy
 
 
 class DroneState(TypedDict):
@@ -31,7 +32,6 @@ class Simulation():
                                              "old_location": None}
                                             for i
                                             in range(1, self.drone_num + 1)]
-        # print(self.locations)
 
     def simulate_turn(self) -> str:
         """Simulate one turn."""
@@ -50,7 +50,6 @@ class Simulation():
                 self.input_data[next_loc]["drone_in_zone"] += 1
                 link2 = self.input_data[old_loc]["connections"][next_loc]
                 link2["drone_in_link"] -= 1
-                drone["old_location"] = None
                 ans += f"D{drone_id}-{next_loc} "
                 continue
             drone_loc: str = drone["location"]
@@ -66,8 +65,7 @@ class Simulation():
             drone_neighbors.sort(key=lambda n:
                                  (0 if n['zone_type'] == 'priority'
                                   else 1, n['dist_to_end']))
-            # print("SORTED NEIGHBORS")
-            # print(drone_neighbors)
+
             for neighbor in drone_neighbors:
                 nei_loc = neighbor["location"]
                 nei_dist = neighbor["dist_to_end"]
@@ -98,6 +96,7 @@ class Simulation():
                     continue
                 else:
                     drone["location"] = nei_loc
+                    drone["old_location"] = drone_loc
                     drone["dist_to_end"] = nei_dist
                     self.input_data[nei_loc]["drone_in_zone"] += 1
                     self.input_data[drone_loc]["drone_in_zone"] -= 1
@@ -112,13 +111,16 @@ class Simulation():
                 return False
         return True
 
-    def simulate_run(self) -> None:
+    def simulate_run(self) -> dict[int, list[DroneState]]:
         """Simulates the whole run."""
         i = 0
+        turns_data = {0: copy.deepcopy(self.locations)}
         while (not self.is_completed()):
             print(self.simulate_turn())
             i += 1
             self.locations.sort(key=lambda drone:
                                 (drone['dist_to_end'],
                                  0 if drone['in_transit'] else 1))
-        print(i)
+            turns_data[i] = copy.deepcopy(self.locations)
+        # print(i)
+        return turns_data
