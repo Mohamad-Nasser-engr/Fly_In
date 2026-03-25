@@ -14,10 +14,9 @@ class Window(arcade.Window):
         self.map = map
         self.turn_data = turn_data
 
-        # Animation tracking
         self.current_turn = 0
         self.timer: int | float = 0
-        self.turn_duration = 0.7  # seconds per turn
+        self.turn_duration = 0.7
         self.max_turn = max(self.turn_data.keys())
 
         arcade.set_background_color(arcade.color.CHARCOAL)
@@ -25,7 +24,7 @@ class Window(arcade.Window):
     def on_update(self, delta_time: float) -> None:
         """Advance animation timer and turns, stop at last turn."""
         if self.current_turn >= self.max_turn:
-            self.timer = self.turn_duration  # clamp
+            self.timer = self.turn_duration
             return
 
         self.timer += delta_time
@@ -38,7 +37,6 @@ class Window(arcade.Window):
     def compute_offsets(self, scale_x: float = 85,
                         scale_y: float = 100) -> tuple[float, float]:
         """Compute offsets to center the graph on the screen."""
-        # Find min/max coordinates in the graph
         xs = [coord[0] for node in self.map.values()
               for coord in [node["coordinates"]]]
         ys = [coord[1] for node in self.map.values()
@@ -60,17 +58,15 @@ class Window(arcade.Window):
         SCALE_Y = 100
 
         self.clear()
-        t = self.timer / self.turn_duration  # interpolation factor
+        t = self.timer / self.turn_duration
 
-        # Dynamic offsets for centering
         OFFSET_X, OFFSET_Y = self.compute_offsets(SCALE_X, SCALE_Y)
 
-        # Get current and previous turns
         current_turn_data = self.turn_data[self.current_turn]
         previous_turn_data = self.turn_data.get(self.current_turn - 1,
                                                 current_turn_data)
 
-        # Draw graph lines
+        # Draw Connections
         for name, value in self.map.items():
             x1, y1 = value["coordinates"]
             x1 = x1 * SCALE_X + OFFSET_X
@@ -81,14 +77,13 @@ class Window(arcade.Window):
                 y2 = y2 * SCALE_Y + OFFSET_Y
                 arcade.draw_line(x1, y1, x2, y2, arcade.color.GRAY, 4)
 
-        # Draw nodes and counts
+        # Draw Zones
         for name, value in self.map.items():
             x, y = value["coordinates"]
             x = x * SCALE_X + OFFSET_X
             y = y * SCALE_Y + OFFSET_Y
             try:
                 if value["color"].upper() == "RAINBOW":
-                    # Generate a rainbow color based on index
                     rainbow_colors = [
                         arcade.color.RED,
                         arcade.color.ORANGE,
@@ -115,7 +110,7 @@ class Window(arcade.Window):
             if value["color"].upper() != "RAINBOW":
                 arcade.draw_circle_filled(x, y, 20, color)
 
-            # Count drones at this node for current turn
+            # Count drones at this zone for current turn
             count = 0
             for drone in current_turn_data:
                 if drone["in_transit"]:
@@ -136,7 +131,6 @@ class Window(arcade.Window):
             drone_prev = previous_turn_data[i]
 
             if drone_now["in_transit"]:
-                # Still travelling — animate to midpoint only
                 start_loc = drone_now["old_location"]
                 end_loc = drone_now["trans_location"]
                 if not end_loc or not start_loc:
@@ -153,7 +147,6 @@ class Window(arcade.Window):
                 y = y1 + (end_y - y1) * t
 
             elif drone_prev["in_transit"]:
-                # Arriving — animate from midpoint to destination
                 old_loc = drone_prev["old_location"]
                 transit_loc = drone_prev["trans_location"]
                 end_loc = drone_now["location"]
@@ -171,7 +164,6 @@ class Window(arcade.Window):
                     y = start_y + (end_y - start_y) * t
 
             else:
-                # Normal move
                 start_loc = drone_prev["location"]
                 end_loc = drone_now["location"]
                 x1, y1 = self.map[start_loc]["coordinates"]
@@ -183,7 +175,6 @@ class Window(arcade.Window):
                 x = x1 + (x2 - x1) * t
                 y = y1 + (y2 - y1) * t
 
-            # Draw drone
             if self.current_turn != self.max_turn:
                 arcade.draw_circle_filled(x, y, 8, arcade.color.YELLOW)
                 arcade.draw_text(str(drone_now["id"]), x, y,
