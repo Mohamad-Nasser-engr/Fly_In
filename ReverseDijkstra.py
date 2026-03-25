@@ -5,6 +5,7 @@ import heapq
 
 
 class ZoneType(Enum):
+    """Zone Type Enum"""
     NORMAL = 1
     RESTRICTED = 2
     PRIORITY = 0.9

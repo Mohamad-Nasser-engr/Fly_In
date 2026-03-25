@@ -122,6 +122,8 @@ class Input_Parser():
             elif meta_name == "max_drones":
                 if not d_l[1].strip().isdigit():
                     raise Exception("Invalid metadata value")
+                if int(d_l[1]) == 0:
+                    raise Exception("Max_drones must be greater than 0")
                 self._zones_data[zone_name]["max_drones"] = int(d_l[1])
             else:
                 raise Exception("Invalid metadata")
@@ -179,6 +181,8 @@ class Input_Parser():
             raise Exception("Invalid connection metadata")
         if not d_l[1].strip().isdigit():
             raise Exception("Invalid metadata value")
+        if int(d_l[1]) == 0:
+            raise Exception("Max_Link must be an integer greater than 0")
         temp = {"max_link": int(d_l[1]), "drone_in_link": 0}
         self._zones_data[data[0]]["connections"][data[1]] = temp
         self._zones_data[data[1]]["connections"][data[0]] = temp
