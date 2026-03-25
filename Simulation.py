@@ -3,6 +3,7 @@ import copy
 
 
 class DroneState(TypedDict):
+    """Drone state definition"""
     id: int
     location: str
     dist_to_end: float | int
@@ -111,16 +112,21 @@ class Simulation():
                 return False
         return True
 
-    def simulate_run(self) -> dict[int, list[DroneState]]:
+    def simulate_run(self) -> Optional[dict[int, list[DroneState]]]:
         """Simulates the whole run."""
         i = 0
         turns_data = {0: copy.deepcopy(self.locations)}
         while (not self.is_completed()):
-            print(self.simulate_turn())
             i += 1
+            turn = self.simulate_turn()
+            print(turn)
             self.locations.sort(key=lambda drone:
                                 (drone['dist_to_end'],
                                  0 if drone['in_transit'] else 1))
             turns_data[i] = copy.deepcopy(self.locations)
-        # print(i)
+            if turn == "":
+                break
+        if not self.is_completed():
+            return None
+        print("Total turns:", i)
         return turns_data

@@ -87,10 +87,33 @@ class Window(arcade.Window):
             x = x * SCALE_X + OFFSET_X
             y = y * SCALE_Y + OFFSET_Y
             try:
-                color = arcade.color.__dict__[value["color"].upper()]
+                if value["color"].upper() == "RAINBOW":
+                    # Generate a rainbow color based on index
+                    rainbow_colors = [
+                        arcade.color.RED,
+                        arcade.color.ORANGE,
+                        arcade.color.YELLOW,
+                        arcade.color.GREEN,
+                        arcade.color.BLUE,
+                        arcade.color.INDIGO,
+                        arcade.color.VIOLET
+                    ]
+
+                    slice_angle = 360 / len(rainbow_colors)
+
+                    for i, color in enumerate(rainbow_colors):
+                        start_angle = i * slice_angle
+                        end_angle = start_angle + slice_angle
+                        arcade.draw_arc_filled(x, y, 20*2, 20*2, color,
+                                               start_angle, end_angle)
+                elif value["color"].upper() == "DARKRED":
+                    color = arcade.color.DARK_RED
+                else:
+                    color = arcade.color.__dict__[value["color"].upper()]
             except Exception:
                 color = arcade.color.GRAY
-            arcade.draw_circle_filled(x, y, 20, color)
+            if value["color"].upper() != "RAINBOW":
+                arcade.draw_circle_filled(x, y, 20, color)
 
             # Count drones at this node for current turn
             count = 0
@@ -113,24 +136,56 @@ class Window(arcade.Window):
             drone_prev = previous_turn_data[i]
 
             if drone_now["in_transit"]:
-                start_loc = drone_now["old_location"] or drone_prev["location"]
-                end_loc = drone_now["trans_location"] or drone_now["location"]
+                # Still travelling — animate to midpoint only
+                start_loc = drone_now["old_location"]
+                end_loc = drone_now["trans_location"]
+                if not end_loc or not start_loc:
+                    continue
+                x1, y1 = self.map[start_loc]["coordinates"]
+                x2, y2 = self.map[end_loc]["coordinates"]
+                mid_x = (x1 + x2) / 2
+                mid_y = (y1 + y2) / 2
+                x1 = x1 * SCALE_X + OFFSET_X
+                y1 = y1 * SCALE_Y + OFFSET_Y
+                end_x = mid_x * SCALE_X + OFFSET_X
+                end_y = mid_y * SCALE_Y + OFFSET_Y
+                x = x1 + (end_x - x1) * t
+                y = y1 + (end_y - y1) * t
+
+            elif drone_prev["in_transit"]:
+                # Arriving — animate from midpoint to destination
+                old_loc = drone_prev["old_location"]
+                transit_loc = drone_prev["trans_location"]
+                end_loc = drone_now["location"]
+                if old_loc and transit_loc:
+                    x1, y1 = self.map[old_loc]["coordinates"]
+                    x2, y2 = self.map[transit_loc]["coordinates"]
+                    mid_x = (x1 + x2) / 2
+                    mid_y = (y1 + y2) / 2
+                    start_x = mid_x * SCALE_X + OFFSET_X
+                    start_y = mid_y * SCALE_Y + OFFSET_Y
+                    end_x, end_y = self.map[end_loc]["coordinates"]
+                    end_x = end_x * SCALE_X + OFFSET_X
+                    end_y = end_y * SCALE_Y + OFFSET_Y
+                    x = start_x + (end_x - start_x) * t
+                    y = start_y + (end_y - start_y) * t
+
             else:
+                # Normal move
                 start_loc = drone_prev["location"]
                 end_loc = drone_now["location"]
-
-            # Convert to coordinates
-            x1, y1 = self.map[start_loc]["coordinates"]
-            x2, y2 = self.map[end_loc]["coordinates"]
-            x1 = x1 * SCALE_X + OFFSET_X
-            y1 = y1 * SCALE_Y + OFFSET_Y
-            x2 = x2 * SCALE_X + OFFSET_X
-            y2 = y2 * SCALE_Y + OFFSET_Y
-
-            # Interpolate
-            x = x1 + (x2 - x1) * t
-            y = y1 + (y2 - y1) * t
+                x1, y1 = self.map[start_loc]["coordinates"]
+                x2, y2 = self.map[end_loc]["coordinates"]
+                x1 = x1 * SCALE_X + OFFSET_X
+                y1 = y1 * SCALE_Y + OFFSET_Y
+                x2 = x2 * SCALE_X + OFFSET_X
+                y2 = y2 * SCALE_Y + OFFSET_Y
+                x = x1 + (x2 - x1) * t
+                y = y1 + (y2 - y1) * t
 
             # Draw drone
             if self.current_turn != self.max_turn:
                 arcade.draw_circle_filled(x, y, 8, arcade.color.YELLOW)
+                arcade.draw_text(str(drone_now["id"]), x, y,
+                                 arcade.color.BLACK, 7,
+                                 anchor_x="center", anchor_y="center")
