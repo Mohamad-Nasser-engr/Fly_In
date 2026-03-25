@@ -84,22 +84,16 @@ class Window(arcade.Window):
             y = y * SCALE_Y + OFFSET_Y
             try:
                 if value["color"].upper() == "RAINBOW":
-                    rainbow_colors = [
-                        arcade.color.RED,
-                        arcade.color.ORANGE,
-                        arcade.color.YELLOW,
-                        arcade.color.GREEN,
-                        arcade.color.BLUE,
-                        arcade.color.INDIGO,
-                        arcade.color.VIOLET
-                    ]
+                    import colorsys
+                    num_slices = 100
+                    for i in range(num_slices):
+                        hue = i / num_slices
+                        r, g, b = colorsys.hsv_to_rgb(hue, 1, 1)
+                        colors = (int(r*255), int(g*255), int(b*255))
 
-                    slice_angle = 360 / len(rainbow_colors)
-
-                    for i, color in enumerate(rainbow_colors):
-                        start_angle = i * slice_angle
-                        end_angle = start_angle + slice_angle
-                        arcade.draw_arc_filled(x, y, 20*2, 20*2, color,
+                        start_angle = i * 360 / num_slices
+                        end_angle = (i+1) * 360 / num_slices
+                        arcade.draw_arc_filled(x, y, 20 * 2, 20 * 2, colors,
                                                start_angle, end_angle)
                 elif value["color"].upper() == "DARKRED":
                     color = arcade.color.DARK_RED
