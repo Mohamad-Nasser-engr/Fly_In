@@ -37,6 +37,9 @@ class Simulation():
     def simulate_turn(self) -> str:
         """Simulate one turn."""
         ans = ""
+        for zone in self.input_data.values():
+            for conn in zone["connections"].values():
+                conn["drone_used_this_turn"] = 0
         for drone in self.locations:
             drone_id = drone["id"]
             if drone["in_transit"]:
@@ -73,12 +76,13 @@ class Simulation():
                 nei_type = neighbor["zone_type"]
                 nei_capacity = self.input_data[nei_loc]["max_drones"]
                 nei_load = self.input_data[nei_loc]["drone_in_zone"]
+                link = self.input_data[drone_loc]["connections"][nei_loc]
+                link_load = link["drone_in_link"]
+                link_capacity = link["max_link"]
+                link_used = link["drone_used_this_turn"]
                 if (nei_type == "blocked" or nei_dist >= drone_dist):
                     continue
                 elif nei_type == "restricted":
-                    link = self.input_data[drone_loc]["connections"][nei_loc]
-                    link_load = link["drone_in_link"]
-                    link_capacity = link["max_link"]
                     if link_capacity == link_load:
                         continue
                     # this statement should be edited
@@ -93,9 +97,10 @@ class Simulation():
                     link3["drone_in_link"] += 1
                     ans += f"D{drone_id}-{drone_loc}-{nei_loc} "
                     break
-                elif nei_load == nei_capacity:
+                elif nei_load == nei_capacity or link_used == link_capacity:
                     continue
                 else:
+                    link["drone_used_this_turn"] += 1
                     drone["location"] = nei_loc
                     drone["old_location"] = drone_loc
                     drone["dist_to_end"] = nei_dist

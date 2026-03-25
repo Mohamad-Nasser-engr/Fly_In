@@ -183,7 +183,8 @@ class Input_Parser():
             raise Exception("Invalid metadata value")
         if int(d_l[1]) == 0:
             raise Exception("Max_Link must be an integer greater than 0")
-        temp = {"max_link": int(d_l[1]), "drone_in_link": 0}
+        temp = {"max_link": int(d_l[1]), "drone_in_link": 0,
+                "drone_used_this_turn": 0}
         self._zones_data[data[0]]["connections"][data[1]] = temp
         self._zones_data[data[1]]["connections"][data[0]] = temp
 
@@ -208,7 +209,8 @@ class Input_Parser():
                 raise Exception("Cannot make connection on the same zone")
             if data in self._connections:
                 raise Exception("Duplicate connection")
-            temp = {"max_link": 1, "drone_in_link": 0}
+            temp = {"max_link": 1, "drone_in_link": 0,
+                    "drone_used_this_turn": 0}
             self._zones_data[data[0]]["connections"][data[1]] = temp
             self._zones_data[data[1]]["connections"][data[0]] = temp
             if len(con_data) == 2:
