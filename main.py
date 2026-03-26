@@ -1,15 +1,13 @@
-from Input_Parser import Input_Parser
-import arcade
-import sys
-import copy
-from Display import Window
-from ReverseDijkstra import ReverseDijkstra
-from Simulation import Simulation
-
-
 def main() -> None:
     """Main script."""
     try:
+        from Input_Parser import Input_Parser
+        import arcade
+        import sys
+        import copy
+        from Display import Window
+        from ReverseDijkstra import ReverseDijkstra
+        from Simulation import Simulation
         if len(sys.argv) != 2:
             raise Exception("No file Specified")
         file = sys.argv[1]
@@ -28,7 +26,7 @@ def main() -> None:
                 return
             Window(1280, 720, "Drone System", input_data, turn_data)
             arcade.run()
-    except Exception as e:
+    except (Exception, KeyboardInterrupt) as e:
         print(e)
 
 

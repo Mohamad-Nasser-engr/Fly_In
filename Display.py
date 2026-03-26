@@ -23,16 +23,13 @@ class Window(arcade.Window):
 
     def on_update(self, delta_time: float) -> None:
         """Advance animation timer and turns, stop at last turn."""
-        if self.current_turn >= self.max_turn:
-            self.timer = self.turn_duration
-            return
-
         self.timer += delta_time
         if self.timer >= self.turn_duration:
-            self.timer = 0
-            self.current_turn += 1
-            if self.current_turn > self.max_turn:
-                self.current_turn = self.max_turn
+            if self.current_turn < self.max_turn:
+                self.timer = 0
+                self.current_turn += 1
+            else:
+                self.timer = self.turn_duration
 
     def compute_offsets(self, scale_x: float = 85,
                         scale_y: float = 100) -> tuple[float, float]:
@@ -169,8 +166,11 @@ class Window(arcade.Window):
                 x = x1 + (x2 - x1) * t
                 y = y1 + (y2 - y1) * t
 
-            if self.current_turn != self.max_turn:
-                arcade.draw_circle_filled(x, y, 8, arcade.color.YELLOW)
-                arcade.draw_text(str(drone_now["id"]), x, y,
-                                 arcade.color.BLACK, 7,
-                                 anchor_x="center", anchor_y="center")
+            if (self.current_turn == self.max_turn
+                    and self.timer >= self.turn_duration):
+                continue
+
+            arcade.draw_circle_filled(x, y, 8, arcade.color.YELLOW)
+            arcade.draw_text(str(drone_now["id"]), x, y,
+                             arcade.color.BLACK, 7,
+                             anchor_x="center", anchor_y="center")
