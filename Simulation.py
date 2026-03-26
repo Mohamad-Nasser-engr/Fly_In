@@ -68,8 +68,10 @@ class Simulation():
                                for key in self.input_data[drone_loc]
                                ["connections"].keys()]
             drone_neighbors.sort(key=lambda n:
-                                 (0 if n['zone_type'] == 'priority'
-                                  else 1, n['dist_to_end']))
+                                 (0 if n['zone_type'] == 'priority' else 1,
+                                  n['dist_to_end'],
+                                  self.input_data[n["location"]]
+                                  ["drone_in_zone"]))
 
             for neighbor in drone_neighbors:
                 nei_loc = neighbor["location"]
