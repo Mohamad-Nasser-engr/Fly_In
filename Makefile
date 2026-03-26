@@ -9,7 +9,7 @@ run:
 	$(PY) -m $(MAIN) $(FILE_PATH)
 
 debug:
-	$(PY) -m pdb $(MAIN)
+	$(PY) -m pdb $(MAIN).py $(FILE_PATH)
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
